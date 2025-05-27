@@ -20,13 +20,13 @@ runs:
       with:
         fetch-depth: 1
         sparse-checkout: |
-          pubspec.yaml
-          bin
-          lib
-          test
-          analysis_options.yaml
-          README.md
-          CHANGELOG.md
+          /bin/
+          /lib/
+          /test/
+          /analysis_options.yaml
+          /pubspec.yaml
+          /README.md
+          /CHANGELOG.md
 
     - name: 👀 Verify versions
       id: versions
