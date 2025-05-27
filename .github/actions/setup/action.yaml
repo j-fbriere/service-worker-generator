@@ -61,7 +61,7 @@ runs:
         export PUB_CACHE="/home/runner/.pub-cache"
         echo "PUB_CACHE=/var/cache/pub" >> $GITHUB_ENV
         echo $PUB_CACHE/bin >> $GITHUB_PATH
-        dart config --disable-analytics
+        dart --disable-analytics
         dart pub get --no-example
 
     #- name: ⏲️ Code generation
