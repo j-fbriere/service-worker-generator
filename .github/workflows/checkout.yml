@@ -1,0 +1,124 @@
+name: Checkout
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+      - "master"
+    paths:
+      - "lib/**.dart"
+      - "test/**.dart"
+      - "example/**.dart"
+      - "example/**.html"
+      - ".github/workflows/*.yml"
+      - "pubspec.yaml"
+      - "analysis_options.yaml"
+  pull_request:
+    branches:
+      - "main"
+      - "master"
+      - "dev"
+      - "develop"
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+      - "support/**"
+    paths:
+      - "lib/**.dart"
+      - "test/**.dart"
+      - "example/**.dart"
+      - "example/**.html"
+      - ".github/workflows/*.yml"
+      - "pubspec.yaml"
+      - "analysis_options.yaml"
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checkout:
+    name: "Checkout"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    container:
+      image: dart:stable
+    env:
+      pub-cache: pub
+      PUB_CACHE: /github/home/.pub-cache
+    timeout-minutes: 10
+    steps:
+      - name: 🚂 Get latest code
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            pubspec.yaml
+            lib
+            test
+            analysis_options.yaml
+            README.md
+            CHANGELOG.md
+
+      - name: 📤 Restore Pub modules
+        id: cache-pub-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/runner/.pub-cache
+          key: ${{ runner.os }}-pub-${{ env.pub-cache }}-${{ hashFiles('pubspec.yaml') }}
+
+      - name: 👷 Install Dependencies
+        id: install-dependencies
+        timeout-minutes: 1
+        run: |
+          echo $PUB_CACHE/bin >> $GITHUB_PATH
+          dart pub get --no-example
+
+      - name: 📥 Save Pub modules
+        id: cache-pub-save
+        if: steps.cache-pub-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /home/runner/.pub-cache
+          key: ${{ steps.cache-pub-restore.outputs.cache-primary-key }}
+
+      - name: 🚦 Check code format
+        id: check-format
+        timeout-minutes: 1
+        run: |
+          find lib test -name "*.dart" ! -name "*.*.dart" -print0 | xargs -0 dart format --set-exit-if-changed --line-length 80 -o none lib/ test/
+
+      - name: 📈 Check analyzer
+        id: check-analyzer
+        timeout-minutes: 1
+        run: dart analyze --fatal-infos --fatal-warnings lib/ test/
+
+      - name: 👀 Verify versions
+        id: verify-versions
+        timeout-minutes: 1
+        run: |
+          test -f pubspec.yaml && test -f lib/src/model/pubspec.yaml.g.dart && test -f CHANGELOG.md
+          version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
+          echo "Version from pubspec.yaml: '$version_pubspec'"
+          echo "$version_pubspec" > /tmp/version_pubspec
+          grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
+          echo $
+
+      - name: 🧪 Run unit tests
+        id: run-unit-tests
+        timeout-minutes: 2
+        run: |
+          dart test --color --platform=vm --concurrency=12 \
+            --timeout=60s --reporter=github --file-reporter=json:reports/tests.json \
+            --coverage=coverage -- test/unit_test.dart

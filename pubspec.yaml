@@ -1,0 +1,49 @@
+# ==============================================================================
+# PROJECT METADATA
+# ==============================================================================
+
+name: sw
+
+description: >
+  A command-line tool to generate service worker files for web applications.
+  It simplifies the process of creating service workers.
+
+version: 0.0.1
+
+homepage: https://github.com/DoctorinaAI/service-worker-generator
+repository: https://github.com/DoctorinaAI/service-worker-generator
+issue_tracker: https://github.com/DoctorinaAI/service-worker-generator/issues
+
+topics:
+  - service-worker
+  - generator
+  - cli
+  - web
+  - flutter
+
+platforms:
+  linux:
+  macos:
+  windows:
+
+# ==============================================================================
+# PROJECT STRUCTURE
+# ==============================================================================
+
+executables:
+  - bin/main.dart
+
+# ==============================================================================
+# DEPENDENCIES
+# ==============================================================================
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  path: ^1.9.1
+  args: ^2.7.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.2

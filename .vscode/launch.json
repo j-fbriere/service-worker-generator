@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // dart test test/unit_test.dart --color --platform=vm
+    {
+      "name": "[Dart] Unit Test (vm)",
+      "request": "launch",
+      "type": "dart",
+      "program": "test/unit_test.dart",
+      "env": {
+        "ENVIRONMENT": "test"
+      },
+      "console": "debugConsole",
+      "runTestsOnDevice": false,
+      "templateFor": "test",
+      "toolArgs": [
+        "--color",
+        "--debug",
+        "--coverage=coverage",
+        "--reporter=expanded",
+        "--platform=vm",
+        "--file-reporter=json:coverage/tests.json",
+        "--timeout=5m",
+        "--concurrency=12",
+        "--chain-stack-traces",
+        /* "--name=Disconnect_temporarily" */
+      ],
+      "args": [],
+      /* "preLaunchTask": "start",
+      "postDebugTask": "stop" */
+    }
+  ]
+}
