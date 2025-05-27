@@ -1,5 +1,3 @@
-# This action should be used within a docker container ghcr.io/plugfox/flutter
-
 name: "Setup Dart Environment"
 description: Sets up the Dart environment for the project.
 
