@@ -2,6 +2,11 @@ name: Checkout
 
 on:
   workflow_dispatch:
+    inputs:
+      dart-version:
+        description: "Dart SDK version to use"
+        default: "stable"
+        required: false
   push:
     branches:
       - "main"
@@ -50,7 +55,7 @@ jobs:
       run:
         working-directory: ./
     container:
-      image: dart:stable
+      image: dart:${{ github.event.inputs.dart-version || 'stable' }}
     env:
       pub-cache: pub
       PUB_CACHE: /github/home/.pub-cache
@@ -68,6 +73,17 @@ jobs:
             analysis_options.yaml
             README.md
             CHANGELOG.md
+
+      - name: 👀 Verify versions
+        id: versions
+        timeout-minutes: 1
+        run: |
+          test -f pubspec.yaml && test -f CHANGELOG.md
+          version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
+          echo "Version from pubspec.yaml: '$version_pubspec'"
+          echo "$version_pubspec" > /tmp/version_pubspec
+          grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
+          echo "version=$version_pubspec" >> $GITHUB_OUTPUT
 
       - name: 📤 Restore Pub modules
         id: cache-pub-restore
@@ -103,17 +119,6 @@ jobs:
         id: check-analyzer
         timeout-minutes: 1
         run: dart analyze --fatal-infos --fatal-warnings lib/ test/
-
-      - name: 👀 Verify versions
-        id: verify-versions
-        timeout-minutes: 1
-        run: |
-          test -f pubspec.yaml && test -f lib/src/model/pubspec.yaml.g.dart && test -f CHANGELOG.md
-          version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
-          echo "Version from pubspec.yaml: '$version_pubspec'"
-          echo "$version_pubspec" > /tmp/version_pubspec
-          grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
-          echo $
 
       - name: 🧪 Run unit tests
         id: run-unit-tests
