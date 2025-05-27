@@ -30,6 +30,7 @@ runs:
 
     - name: 👀 Verify versions
       id: versions
+      shell: bash
       run: |
         test -f pubspec.yaml && test -f CHANGELOG.md
         version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
