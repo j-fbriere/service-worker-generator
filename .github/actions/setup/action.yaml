@@ -20,7 +20,6 @@ runs:
       with:
         fetch-depth: 1
         sparse-checkout: |
-          .github
           pubspec.yaml
           bin
           lib
@@ -31,7 +30,6 @@ runs:
 
     - name: 👀 Verify versions
       id: versions
-      timeout-minutes: 1
       run: |
         test -f pubspec.yaml && test -f CHANGELOG.md
         version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')

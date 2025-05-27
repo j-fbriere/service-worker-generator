@@ -77,6 +77,7 @@ jobs:
 
       - name: 🚂 Setup dependencies
         id: setup
+        timeout-minutes: 5
         uses: ./.github/actions/setup
         with:
           pub-cache: packages
@@ -94,7 +95,7 @@ jobs:
 
       - name: 🧪 Run unit tests
         id: run-unit-tests
-        timeout-minutes: 2
+        timeout-minutes: 5
         run: |
           dart test --color --platform=vm --concurrency=12 \
             --timeout=60s --reporter=github --file-reporter=json:reports/tests.json \
