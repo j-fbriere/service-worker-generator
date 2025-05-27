@@ -60,54 +60,26 @@ jobs:
       pub-cache: pub
       PUB_CACHE: /github/home/.pub-cache
     timeout-minutes: 10
+    outputs:
+      version: ${{ steps.setup.outputs.version }}
+    concurrency:
+      group: checkout-${{ github.workflow }}-${{ github.ref_name }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
     steps:
-      - name: 🚂 Get latest code
-        id: checkout
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 1
           sparse-checkout: |
             .github
-            pubspec.yaml
-            lib
-            test
-            analysis_options.yaml
-            README.md
-            CHANGELOG.md
 
-      - name: 👀 Verify versions
-        id: versions
-        timeout-minutes: 1
-        run: |
-          test -f pubspec.yaml && test -f CHANGELOG.md
-          version_pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}' | sed 's/[^[:print:]]//g')
-          echo "Version from pubspec.yaml: '$version_pubspec'"
-          echo "$version_pubspec" > /tmp/version_pubspec
-          grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
-          echo "version=$version_pubspec" >> $GITHUB_OUTPUT
-
-      - name: 📤 Restore Pub modules
-        id: cache-pub-restore
-        uses: actions/cache/restore@v4
+      - name: 🚂 Setup dependencies
+        id: setup
+        uses: ./.github/actions/setup
         with:
-          path: |
-            /home/runner/.pub-cache
-          key: ${{ runner.os }}-pub-${{ env.pub-cache }}-${{ hashFiles('pubspec.yaml') }}
-
-      - name: 👷 Install Dependencies
-        id: install-dependencies
-        timeout-minutes: 1
-        run: |
-          echo $PUB_CACHE/bin >> $GITHUB_PATH
-          dart pub get --no-example
-
-      - name: 📥 Save Pub modules
-        id: cache-pub-save
-        if: steps.cache-pub-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            /home/runner/.pub-cache
-          key: ${{ steps.cache-pub-restore.outputs.cache-primary-key }}
+          pub-cache: packages
 
       - name: 🚦 Check code format
         id: check-format
