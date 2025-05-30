@@ -1,10 +1,3 @@
-## 0.0.1
+## 0.0.2
 
-- **ADDED**:
-- **CHANGED**:
-- **DEPRECATED**:
-- **REMOVED**:
-- **FIXED**:
-- **SECURITY**:
-- **REFACTOR**:
-- **DOCS**:
+- Proof of concept for service worker generation
