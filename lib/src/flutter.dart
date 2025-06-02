@@ -1,7 +1,6 @@
 /// Flutter template for loading a Flutter web application with a progress bar.
 /// https://docs.flutter.dev/platform-integration/web/initialization
-String flutterTemplate() =>
-    '''
+String flutterTemplate() => '''
     {{flutter_js}}
     {{flutter_build_config}}
 
@@ -29,7 +28,7 @@ String flutterTemplate() =>
       }
     });
 '''
-        .trim()
-        .split('\n')
-        .map((line) => line.trim())
-        .join('\n');
+    .trim()
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n');
