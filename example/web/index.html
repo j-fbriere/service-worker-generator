@@ -21,7 +21,8 @@
   <title>Service Worker</title>
   <link rel="manifest" href="manifest.json">
   <style type="text/css">
-    body {
+    body,
+    html {
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -40,8 +41,15 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .logo-container {
@@ -125,99 +133,28 @@
       animation: dots 1.5s infinite;
     }
 
-    /* Resources container */
-    .resources-container {
-      margin-top: 1rem;
-      width: 320px;
-      max-height: 0; /* по умолчанию скрыт */
-      overflow-y: auto;
-      transition: max-height 0.3s ease;
-    }
-
-    /* Resource tile */
-    .resource-tile {
-      height: 64px;
-      padding: 4px 8px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    /* Name of the resource */
-    .resource-key {
-      font-size: 0.9rem;
-      color: #ffffff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Progress bar for each resource */
-    .resource-progress-wrapper {
-      position: relative;
-      background: rgba(255, 255, 255, 0.1);
-      height: 24px;
-      margin-top: 4px;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    /* Progress bar */
-    .resource-progress-bar {
-      height: 100%;
-      width: 0;
-      background: #00ff88;
-      transition: width 0.3s ease;
-    }
-
-    /* Text for progress bar */
-    .resource-progress-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 0.7rem;
-      color: #fff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-      pointer-events: none;
-    }
-
-    /* Resouces Firefox */
-    .resources-container {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.4) transparent;
-    }
-
-    /* Resouces WebKit */
-    .resources-container::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .resources-container::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .resources-container::-webkit-scrollbar-thumb {
-      background-color: rgba(255,255,255,0.4);
-      border-radius: 3px;
-      border: 1px solid transparent;
-      background-clip: content-box;
-    }
-
-    .resources-container::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(255,255,255,0.6);
-    }
-
     @keyframes dots {
-      0%, 20% { content: ''; }
-      40% { content: '.'; }
-      60% { content: '..'; }
-      80%, 100% { content: '...'; }
+
+      0%,
+      20% {
+        content: '';
+      }
+
+      40% {
+        content: '.';
+      }
+
+      60% {
+        content: '..';
+      }
+
+      80%,
+      100% {
+        content: '...';
+      }
     }
 
-    @media (prefers-color-scheme: dark) { }
+    @media (prefers-color-scheme: dark) {}
 
     @media (max-width: 480px) {
       .logo-image {
@@ -238,10 +175,6 @@
 
       .progress-text {
         font-size: 1rem;
-      }
-
-      .resources-container {
-        width: 90vw;
       }
     }
   </style>
@@ -272,13 +205,13 @@
     <div id="resources-container" class="resources-container"></div>
   </div>
 
-  <!-- Flutter JS and build config -->
   <script>
     // Progress management
     let currentProgress = 0;
     let isServiceWorkerAvailable = false;
     let totalResourcesSize = 0; // Total size from sw.js RESOURCES_SIZE
     let loadedResources = new Map(); // Track loaded resources: resourceKey -> { size, loaded }
+    let serviceWorkerMessageHandler = null; // Store reference to the message handler for cleanup
 
     const progressCircle = document.getElementById('progress-circle');
     const progressText = document.getElementById('progress-text');
@@ -293,12 +226,25 @@
      * Calculates the total loaded resources size.
      * Returns the total loaded size from the loadedResources map.
      */
-    function calculateTotalProgress() {
+    function calculateTotalLoaded() {
       let totalLoaded = 0;
       loadedResources.forEach(resource => {
-        totalLoaded += resource.loaded;
+        totalLoaded += resource.loaded || 0; // Use loaded bytes if available
       });
       return totalLoaded;
+    }
+
+    /**
+     * Calculates the total size of all resources.
+     * Returns the total size from the loadedResources map.
+     */
+    function calculateTotalSize() {
+      let totalSize = 0;
+      loadedResources.forEach(resource => {
+        totalSize += resource.size || 0; // Use resource size if available
+      });
+      // Ensure at least 8 MB total size if no resources are loaded yet
+      return Math.max(totalSize, 8 * 1024 * 1024);
     }
 
     /**
@@ -327,11 +273,8 @@
      */
     function removeLoadingIndicator() {
       const loadingEl = document.getElementById("loading");
-      if (loadingEl) {
-        loadingEl.style.transition = 'opacity 0.5s ease-out';
-        loadingEl.style.opacity = '0';
-        setTimeout(() => loadingEl.remove(), 500);
-      }
+      if (!loadingEl) return;
+      loadingEl.remove();
     }
 
     // Expose functions globally
@@ -345,10 +288,12 @@
     async function registerServiceWorker() {
       if ('serviceWorker' in navigator) {
         try {
-          const registration = await navigator.serviceWorker.register('/flutter_service_worker.js');
+          const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('Service Worker registered successfully');
-          isServiceWorkerAvailable = true; // Listen for service worker messages
-          navigator.serviceWorker.addEventListener('message', (event) => {
+          isServiceWorkerAvailable = true;
+
+          // Create and store the message handler for later cleanup
+          serviceWorkerMessageHandler = (event) => {
             if (event.data && event.data?.type === 'sw-progress') {
               const {
                 resourceKey,
@@ -361,7 +306,7 @@
                 status
               } = event.data;
 
-              totalResourcesSize = resourcesSize || totalResourcesSize; // Update total size if provided
+              //totalResourcesSize = resourcesSize || totalResourcesSize; // Update total size if provided
 
               if (resourceKey && resourceSize !== undefined && loaded !== undefined) {
                 // Update or add resource in our hash table
@@ -376,37 +321,38 @@
                 });
 
                 // Calculate total progress
-                const totalLoaded = calculateTotalProgress();
-                const progressPercent = Math.min((totalLoaded / totalResourcesSize) * 100, 100);
+                const totalLoaded = calculateTotalLoaded();
+                const totalSize = calculateTotalSize();
+                const progressPercent = Math.min((totalLoaded / totalSize) * 100, 100);
 
                 // Map SW progress from 10% to 90% (leaving 10% for dart logic)
                 const mappedProgress = 10 + (progressPercent * 0.8); // 10% + (0-100% * 80%)
 
+                console.log(`Downloading resource "${resourceName}" (${formatBytes(loaded)} / ${formatBytes(resourceSize)})`);
+
                 let progressText = 'Downloading';
                 if (totalLoaded > 0) {
-                  const loadedMB = (totalLoaded / 1024 / 1024).toFixed(1);
-                  const totalMB = (totalResourcesSize / 1024 / 1024).toFixed(1);
                   //const resourceCount = loadedResources.size;
-                  progressText = `Downloading (${loadedMB}/${totalMB} MB)`;
+                  progressText = `Downloading (${formatBytes(totalLoaded)} / ${formatBytes(totalSize)})`;
                 }
 
-                updateLoadingProgress(mappedProgress, progressText);
+                // Update the loading progress only if it's below 90%
+                // Because we reserve 10% for the Dart logic
+                if (currentProgress <= 90)
+                  updateLoadingProgress(mappedProgress, progressText);
               }
-
-              renderResourcesList();
             }
-          });
+          };
 
-          return registration;
+          // Listen for service worker messages
+          navigator.serviceWorker.addEventListener('message', serviceWorkerMessageHandler);
         } catch (error) {
           console.warn('Service Worker registration failed:', error);
           isServiceWorkerAvailable = false;
-          return null;
         }
       } else {
         console.warn('Service Workers are not supported');
         isServiceWorkerAvailable = false;
-        return null;
       }
     }
 
@@ -432,8 +378,21 @@
               updateLoadingProgress(30, 'Initializing Flutter engine');
             }
 
+            // Initialize the Flutter engine
             const appRunner = await engineInitializer.initializeEngine();
+
+            // Clean up service worker message listener
+            if (serviceWorkerMessageHandler && 'serviceWorker' in navigator) {
+              navigator.serviceWorker.removeEventListener('message', serviceWorkerMessageHandler);
+              serviceWorkerMessageHandler = null;
+              console.log('Service Worker message listener removed');
+            }
+
+            // Set the loading progress to 90% before running the app
             updateLoadingProgress(90, 'Starting application');
+
+            // Run the Flutter application, and initialize
+            // the last 10% of the loading progress
             await appRunner.runApp();
           }
         });
@@ -449,12 +408,14 @@
      */
     async function initializeApp() {
       try {
+        updateLoadingProgress(0, 'Loading flutter application');
+        loadFlutterApp();
+
         // Register service worker first
-        updateLoadingProgress(0, 'Registering service worker');
+        updateLoadingProgress(10, 'Registering service worker');
         await registerServiceWorker();
 
-        // Initial progress update
-        updateLoadingProgress(10, 'Loading flutter application');
+        /* updateLoadingProgress(10, 'Loading flutter application');
         if ('serviceWorker' in navigator) {
           if (navigator.serviceWorker.controller) {
             console.log('[SW] registered and controlled');
@@ -468,7 +429,7 @@
         } else {
           console.warn('[SW] Service Worker not supported, loading Flutter app directly');
           loadFlutterApp(); // Load Flutter app directly if service worker is not supported
-        }
+        } */
       } catch (e) {
         console.error('[SW] registration failed:', e);
         loadFlutterApp(); // Load Flutter app even if service worker registration fails
@@ -482,17 +443,9 @@
 
     // Listen for the first frame event to finalize loading
     window.addEventListener('flutter-first-frame', function () {
-      updateLoadingProgress(100, 'Ready');
-
-      // Fade out loading screen after a short delay
-      setTimeout(() => {
-        const loadingEl = document.getElementById("loading");
-        if (loadingEl) {
-          loadingEl.style.transition = 'opacity 0.5s ease-out';
-          loadingEl.style.opacity = '0';
-          setTimeout(() => loadingEl.remove(), 500);
-        }
-      }, 300);
+      const loadingEl = document.getElementById("loading");
+      if (!loadingEl) return;
+      loadingEl.remove();
     });
 
     // Handle service worker updates,
@@ -517,68 +470,6 @@
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
-
-    /**
-     * Draws the list of resources with their loading progress.
-     */
-    function renderResourcesList() {
-      const container = document.getElementById('resources-container');
-      if (!container) return;
-      container.innerHTML = '';
-      // Sort resources by timestamp (most recent first)
-      const sortedResources = Array.from(loadedResources.values())
-        .filter(res => res.size > 0).sort((a, b) => b.timestamp - a.timestamp);
-      if (sortedResources.length === 0) {
-        container.innerHTML = '<div class="resource-tile">No resources loaded yet</div>';
-        return;
-      }
-      sortedResources.forEach(res => {
-        const tile = document.createElement('div');
-        tile.className = 'resource-tile';
-
-        const title = document.createElement('div');
-        title.className = 'resource-key';
-        title.textContent = res.name || res.key || res.url || 'Unknown';
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'resource-progress-wrapper';
-
-        const bar = document.createElement('div');
-        bar.className = 'resource-progress-bar';
-        const percent = res.size ? (res.loaded / res.size) * 100 : 0;
-        bar.style.width = `${percent}%`;
-
-        const overlay = document.createElement('div');
-        overlay.className = 'resource-progress-text';
-        overlay.textContent = `${res.status} ${formatBytes(res.loaded)} / ${formatBytes(res.size)}`;
-
-        wrapper.append(bar, overlay);
-        tile.append(title, wrapper);
-        container.append(tile);
-      });
-
-      adjustResourcesContainerHeight();
-    }
-
-    /**
-     * Show or hide the resources container based on available height
-     */
-    function adjustResourcesContainerHeight() {
-      const container = document.getElementById('resources-container');
-      const loading = document.getElementById('loading');
-      const viewportH = window.innerHeight;
-      const loadingRect = loading.getBoundingClientRect();
-      const available = viewportH - loadingRect.top - loadingRect.height - 20; // отступ 20px
-
-      if (available >= 64) {
-        container.style.maxHeight = `${available}px`;
-      } else {
-        container.style.maxHeight = '0';
-      }
-    }
-
-    // Подстраиваем на ресайз
-    window.addEventListener('resize', adjustResourcesContainerHeight);
   </script>
 </body>
 </html>
