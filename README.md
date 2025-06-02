@@ -48,8 +48,8 @@ dart run sw:generate --prefix my-app --version 1.2.3
 
 # Filter files with glob patterns
 dart run sw:generate \
-    --glob "*, **/*.js, **/*.wasm, **/*.json, assets/**, canvaskit/**, icons/**"
-    --no-glob "flutter_service_worker.js, **/*.map, assets/NOTICES"
+    --glob="**.{html,js,wasm,json}; assets/**; canvaskit/**; icons/**"
+    --no-glob="flutter_service_worker.js; **/*.map; assets/NOTICES"
 
 # Include comments in generated file
 dart run sw:generate --comments
@@ -64,8 +64,8 @@ dart run sw:generate --comments
 | `--output`   | `-o`  | Output service worker filename                | `sw.js`           |
 | `--prefix`   | `-p`  | Cache name prefix                             | `app-cache`       |
 | `--version`  | `-v`  | Cache version                                 | current timestamp |
-| `--glob`     | `-g`  | Glob pattern to include files                 | `**`              |
-| `--no-glob`  | `-e`  | Glob pattern to exclude files                 | -                 |
+| `--glob`     | `-g`  | Glob patterns to include files                | `**`              |
+| `--no-glob`  | `-e`  | Glob patterns to exclude files                | -                 |
 | `--comments` | `-c`  | Include comments in generated file            | `false`           |
 
 ## 📁 Usage Examples
@@ -84,12 +84,11 @@ dart run build_runner build --delete-conflicting-outputs --release
 flutter build web --release --no-tree-shake-icons --no-web-resources-cdn --base-href=/ -o build/web
 
 # 5. Generate service worker
-dart run sw:generate --input build/web \
+dart run sw:generate --input=build/web \
     --output=flutter_service_worker.js \
-    --prefix flutter-app \
-    --version "$(date +%s)" \
-    --glob=*, **/*.js, **/*.wasm, **/*.json, assets/**, canvaskit/**, icons/** \
-    --no-glob=flutter_service_worker.js, **/*.map, assets/NOTICES \
+    --prefix=flutter-app \
+    --glob="**.{html,js,wasm,json}; assets/**; canvaskit/**; icons/**" \
+    --no-glob="flutter_service_worker.js; **/*.map; assets/NOTICES" \
     --comments
 ```
 
@@ -117,6 +116,12 @@ We welcome contributions to this project! Please follow these steps:
 5. **Commit** your changes (`git commit -m 'Add amazing feature'`)
 6. **Push** to the branch (`git push origin feature/amazing-feature`)
 7. **Create** a Pull Request
+
+To use this package from local path, you can clone the repository and run:
+
+```shell
+dart pub global activate --source path .
+```
 
 ## 📝 License
 

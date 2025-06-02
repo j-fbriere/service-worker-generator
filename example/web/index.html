@@ -245,6 +245,15 @@
       }
     }
   </style>
+
+  <!-- Enable WASM threads on debug: https://github.com/orgs/community/discussions/13309#discussioncomment-3844940 -->
+  <script>
+    if (!window.crossOriginIsolated && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+      const script = document.createElement('script');
+      script.src = 'enable-wasm-threads.js';
+      document.head.appendChild(script);
+    }
+  </script>
 </head>
 
 <body>
@@ -325,7 +334,7 @@
       }
     }
 
-    // Expose functions to the global scope for external access
+    // Expose functions globally
     window.updateLoadingProgress = updateLoadingProgress;
     window.removeLoadingIndicator = removeLoadingIndicator;
 
@@ -448,7 +457,7 @@
         updateLoadingProgress(10, 'Loading flutter application');
         if ('serviceWorker' in navigator) {
           if (navigator.serviceWorker.controller) {
-            console.log('[SW] registered:', reg);
+            console.log('[SW] registered and controlled');
             loadFlutterApp(); // Load Flutter app immediately if already controlled
           } else {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
