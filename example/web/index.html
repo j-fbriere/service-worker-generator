@@ -522,7 +522,7 @@
     async function registerServiceWorker() {
       // eslint-disable-next-line no-undef
       const swVersion = '{{flutter_service_worker_version}}';
-      if (!swVersion) {
+      if (!swVersion || swVersion === 'null' || swVersion === 'undefined') {
         console.log('Service Worker not registered (no version or non-production build).');
         isServiceWorkerAvailable = false;
         return;
