@@ -109,9 +109,28 @@ void main([List<String>? arguments]) => runZonedGuarded<void>(
                 .replaceAll(RegExp('-{2,}'), '-') ??
             DateTime.now().millisecondsSinceEpoch.toString();
 
+        String baseHref = $arguments
+            .option('base-href') ?? '';
+        if (baseHref.isNotEmpty) {
+          if (!baseHref.startsWith('/')) {
+            baseHref = '/$baseHref';
+          }
+          if (baseHref.endsWith('/')) {
+            baseHref = baseHref.substring(0, baseHref.length - 1);
+          }
+        }
+        if (baseHref == '/') {
+          baseHref = '';
+        }
+
+        String cacheBustingTags = $arguments
+            .option('cache-busting-tags') ?? 'v,cachebuster';
+
         var serviceWorkerText = buildServiceWorker(
           cachePrefix: cachePrefix,
           cacheVersion: cacheVersion,
+          baseHref: baseHref,
+          cacheBustingTags: cacheBustingTags,
           resources: <String, Object?>{
             if (resources['index.html'] case Object obj) '/': obj,
             ...resources,
@@ -226,6 +245,24 @@ ArgParser buildArgumentsParser() => ArgParser()
     defaultsTo: false,
     help: 'Include comments in the generated service worker file. '
         'This is useful for debugging and understanding the generated code.',
+  )
+  ..addOption(
+    'base-href',
+    abbr: 'b',
+    aliases: const <String>['base_href', 'base'],
+    mandatory: false,
+    defaultsTo: '',
+    valueHelp: 'sitename, /othersitename',
+    help: 'Root path of the PWA site',
+  )
+  ..addOption(
+    'cache-busting-tags',
+    abbr: 't',
+    aliases: const <String>['cache_busting_tags'],
+    mandatory: false,
+    defaultsTo: 'v,cachebuster',
+    valueHelp: 'v,cachebuster',
+    help: 'URL arguments used to bust the cache',
   );
 
 /// Help message for the command line arguments

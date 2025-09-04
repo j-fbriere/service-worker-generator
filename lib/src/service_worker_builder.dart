@@ -6,6 +6,8 @@ import 'dart:convert' show JsonEncoder;
 String buildServiceWorker({
   String cachePrefix = 'app-cache',
   String cacheVersion = '1.0.0',
+  String baseHref = '',
+  String cacheBustingTags = 'v,cachebuster',
   Map<String, Object?> resources = const <String, Object?>{},
 }) {
   final resourcesSize = resources.entries.fold<int>(
@@ -31,6 +33,10 @@ String buildServiceWorker({
   };
   final core = resources.keys.where(coreSet.contains).toList(growable: false);
   return '\'use strict\';\n'
+      '\n'
+      'const BASE_HREF = \'$baseHref\';\n'
+      '\n'
+      'const CACHE_BUSTING_TAGS = \'$cacheBustingTags\';\n'
       '\n'
       '// ---------------------------\n'
       '// Version & Cache Names\n'
@@ -98,6 +104,15 @@ self.addEventListener("activate", function(event) {
       var tempCache = await caches.open(TEMP_CACHE);
       var manifestCache = await caches.open(MANIFEST_CACHE);
       var manifest = await manifestCache.match(MANIFEST_KEY);
+
+      var cacheNamesToDelete = (await caches.keys()).filter(cacheName => cacheName.startsWith(CACHE_PREFIX) && cacheName!=CACHE_NAME && cacheName!=TEMP_CACHE && cacheName!=MANIFEST_CACHE);
+      console.log('*activate* Will try to delete caches: '+cacheNamesToDelete.join(', '));
+      await Promise.all(
+        cacheNamesToDelete.map(cacheName => {
+          console.log('*activate* Deleting cache: ', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
 
       // When there is no prior manifest, clear the entire cache.
       if (!manifest) {
@@ -197,8 +212,13 @@ self.addEventListener("fetch", (event) => {
 
   var origin = self.location.origin;
   var resourceKey = getResourceKey(event.request);
+  if (resourceKey == null) return;
   // Redirect URLs to the index.html
-  if (resourceKey.indexOf('?v=') != -1) resourceKey = resourceKey.split('?v=')[0];
+  var foundTagLst = CACHE_BUSTING_TAGS.split(',').filter(tag => resourceKey.indexOf(`?${tag}=`) != -1);
+  if (foundTagLst.length > 0) {
+    var foundTag = foundTagLst[0];
+    resourceKey = resourceKey.split(`?${foundTag}=`)[0];
+  }
   if (event.request.url == origin || event.request.url.startsWith(origin + '/#') || resourceKey == '')
     resourceKey = '/';
   // If the URL is not the RESOURCE list then return to signal that the
@@ -223,7 +243,10 @@ self.addEventListener("fetch", (event) => {
       return cache.match(event.request).then((response) => {
         // Either respond with the cached resource, or perform a fetch and
         // lazily populate the cache only if the resource was successfully fetched.
-        return response || fetch(event.request).then((response) => {
+        var req_url = new URL(event.request.url);
+        var foundTagLst = CACHE_BUSTING_TAGS.split(',').filter(tag => req_url.searchParams.get(tag) != null);
+        var request_url = foundTagLst.length > 0 ? event.request.url : event.request.url+'?v='+CACHE_VERSION;
+        return response || fetch(request_url).then((response) => {
           if (response && Boolean(response.ok)) {
             cache.put(event.request, response.clone());
             notifyClients({
@@ -355,11 +378,10 @@ function onlineFirst(event) {
  */
 function getResourceKey(requestOrUrl) {
   const url = typeof requestOrUrl === 'string'
-    ? new URL(requestOrUrl, self.location.origin)
+    ? new URL(requestOrUrl)
     : new URL(requestOrUrl.url);
-  url.hash = '';
-  url.search = '';
-  let key = url.pathname;
+  if (BASE_HREF.length > 0 && !url.pathname.startsWith(BASE_HREF)) return null;
+  let key = url.pathname.substring(BASE_HREF.length + 1);
   if (key.startsWith('/')) key = key.slice(1);
   if (key.endsWith('/') && key !== '/') key = key.slice(0, -1);
   return key === '' ? '/' : key;
