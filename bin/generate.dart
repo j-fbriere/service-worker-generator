@@ -252,8 +252,8 @@ ArgParser buildArgumentsParser() => ArgParser()
     aliases: const <String>['base_href', 'base'],
     mandatory: false,
     defaultsTo: '',
-    valueHelp: 'sitename, /othersitename',
-    help: 'Root path of the PWA site',
+    valueHelp: 'somename, /othername',
+    help: 'Root path of the app site',
   )
   ..addOption(
     'cache-busting-tags',
@@ -262,7 +262,7 @@ ArgParser buildArgumentsParser() => ArgParser()
     mandatory: false,
     defaultsTo: 'v,cachebuster',
     valueHelp: 'v,cachebuster',
-    help: 'URL arguments used to bust the cache',
+    help: 'Assets URL args used to bust the cache',
   );
 
 /// Help message for the command line arguments

@@ -57,16 +57,18 @@ dart run sw:generate --comments
 
 ## 📋 Command Line Options
 
-| Option       | Short | Description                                   | Default           |
-| ------------ | ----- | --------------------------------------------- | ----------------- |
-| `--help`     | `-h`  | Show help information                         | -                 |
-| `--input`    | `-i`  | Path to build directory containing index.html | `build/web`       |
-| `--output`   | `-o`  | Output service worker filename                | `sw.js`           |
-| `--prefix`   | `-p`  | Cache name prefix                             | `app-cache`       |
-| `--version`  | `-v`  | Cache version                                 | current timestamp |
-| `--glob`     | `-g`  | Glob patterns to include files                | `**`              |
-| `--no-glob`  | `-e`  | Glob patterns to exclude files                | -                 |
-| `--comments` | `-c`  | Include comments in generated file            | `false`           |
+| Option                 | Short | Description                                   | Default           |
+|------------------------|-------|-----------------------------------------------|-------------------|
+| `--help`               | `-h`  | Show help information                         | -                 |
+| `--input`              | `-i`  | Path to build directory containing index.html | `build/web`       |
+| `--output`             | `-o`  | Output service worker filename                | `sw.js`           |
+| `--prefix`             | `-p`  | Cache name prefix                             | `app-cache`       |
+| `--version`            | `-v`  | Cache version                                 | current timestamp |
+| `--glob`               | `-g`  | Glob patterns to include files                | `**`              |
+| `--no-glob`            | `-e`  | Glob patterns to exclude files                | -                 |
+| `--comments`           | `-c`  | Include comments in generated file            | `false`           |
+| `--base-href`          | `-b`  | Root path of the app site                     | ``                |
+| `--cache-busting-tags` | `-t`  | Assets URL args used to bust the cache        | `v,cachebuster`   |
 
 ## 📁 Usage Examples
 
@@ -89,7 +91,9 @@ dart run sw:generate --input=build/web \
     --prefix=flutter-app \
     --glob="**.{html,js,wasm,json}; assets/**; canvaskit/**; icons/**" \
     --no-glob="flutter_service_worker.js; **/*.map; assets/NOTICES" \
-    --comments
+    --comments \
+    --base-href '/my_app' \
+    --cache-busting-tags 'v,cachebuster,version'
 ```
 
 ## 📖 Generated Service Worker Structure
