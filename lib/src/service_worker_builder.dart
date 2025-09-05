@@ -7,7 +7,6 @@ String buildServiceWorker({
   String cachePrefix = 'app-cache',
   String cacheVersion = '1.0.0',
   String baseHref = '',
-  String cacheBustingTags = 'v,cachebuster',
   Map<String, Object?> resources = const <String, Object?>{},
 }) {
   final resourcesSize = resources.entries.fold<int>(
@@ -35,8 +34,6 @@ String buildServiceWorker({
   return '\'use strict\';\n'
       '\n'
       'const BASE_HREF = \'$baseHref\';\n'
-      '\n'
-      'const CACHE_BUSTING_TAGS = \'$cacheBustingTags\';\n'
       '\n'
       '// ---------------------------\n'
       '// Version & Cache Names\n'
@@ -214,10 +211,8 @@ self.addEventListener("fetch", (event) => {
   var resourceKey = getResourceKey(event.request);
   if (resourceKey == null) return;
   // Redirect URLs to the index.html
-  var foundTagLst = CACHE_BUSTING_TAGS.split(',').filter(tag => resourceKey.indexOf(`?${tag}=`) != -1);
-  if (foundTagLst.length > 0) {
-    var foundTag = foundTagLst[0];
-    resourceKey = resourceKey.split(`?${foundTag}=`)[0];
+  if (resourceKey.indexOf('?') != -1) {
+    resourceKey = resourceKey.split('?')[0];
   }
   if (event.request.url == origin || event.request.url.startsWith(origin + '/#') || resourceKey == '')
     resourceKey = '/';
@@ -244,8 +239,7 @@ self.addEventListener("fetch", (event) => {
         // Either respond with the cached resource, or perform a fetch and
         // lazily populate the cache only if the resource was successfully fetched.
         var req_url = new URL(event.request.url);
-        var foundTagLst = CACHE_BUSTING_TAGS.split(',').filter(tag => req_url.searchParams.get(tag) != null);
-        var request_url = foundTagLst.length > 0 ? event.request.url : event.request.url+'?v='+CACHE_VERSION;
+        var request_url = req_url.searchParams.get('cachebuster') != null ? event.request.url : (req_url.searchParams.size == 0 ? `${event.request.url}?cachebuster=${CACHE_VERSION}` : `${event.request.url}&cachebuster=${CACHE_VERSION}`);
         return response || fetch(request_url).then((response) => {
           if (response && Boolean(response.ok)) {
             cache.put(event.request, response.clone());

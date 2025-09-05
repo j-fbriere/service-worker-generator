@@ -68,7 +68,6 @@ dart run sw:generate --comments
 | `--no-glob`            | `-e`  | Glob patterns to exclude files                | -                 |
 | `--comments`           | `-c`  | Include comments in generated file            | `false`           |
 | `--base-href`          | `-b`  | Root path of the app site                     | ``                |
-| `--cache-busting-tags` | `-t`  | Assets URL args used to bust the cache        | `v,cachebuster`   |
 
 ## 📁 Usage Examples
 
@@ -92,8 +91,7 @@ dart run sw:generate --input=build/web \
     --glob="**.{html,js,wasm,json}; assets/**; canvaskit/**; icons/**" \
     --no-glob="flutter_service_worker.js; **/*.map; assets/NOTICES" \
     --comments \
-    --base-href '/my_app' \
-    --cache-busting-tags 'v,cachebuster,version'
+    --base-href '/my_app'
 ```
 
 ## 📖 Generated Service Worker Structure
