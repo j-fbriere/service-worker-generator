@@ -82,7 +82,7 @@ self.addEventListener("install", (event) => {
   return event.waitUntil(
     caches.open(TEMP_CACHE).then((cache) => {
       return cache.addAll(
-        CORE.map((value) => new Request(value, {'cache': 'reload'})));
+        CORE.map((value) => new Request(`${value}?cachebuster=${CACHE_VERSION}`, {'cache': 'reload'})));
     })
   );
 });
@@ -235,14 +235,14 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(caches.open(CACHE_NAME)
     .then((cache) =>  {
-      return cache.match(event.request).then((response) => {
+      var req_url = new URL(event.request.url);
+      var request_url = req_url.searchParams.get('cachebuster') != null ? event.request.url : (req_url.searchParams.size == 0 ? `${event.request.url}?cachebuster=${CACHE_VERSION}` : `${event.request.url}&cachebuster=${CACHE_VERSION}`);
+      return cache.match(request_url).then((response) => {
         // Either respond with the cached resource, or perform a fetch and
         // lazily populate the cache only if the resource was successfully fetched.
-        var req_url = new URL(event.request.url);
-        var request_url = req_url.searchParams.get('cachebuster') != null ? event.request.url : (req_url.searchParams.size == 0 ? `${event.request.url}?cachebuster=${CACHE_VERSION}` : `${event.request.url}&cachebuster=${CACHE_VERSION}`);
         return response || fetch(request_url).then((response) => {
           if (response && Boolean(response.ok)) {
-            cache.put(event.request, response.clone());
+            cache.put(new URL(request_url), response.clone());
             notifyClients({
               resourceName: resourceInfo?.name || resourceKey,
               resourceUrl: event.request.url,
