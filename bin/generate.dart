@@ -123,10 +123,14 @@ void main([List<String>? arguments]) => runZonedGuarded<void>(
           baseHref = '';
         }
 
+        String cacheBuster = $arguments
+            .option('cache-buster') ?? cacheVersion;
+
         var serviceWorkerText = buildServiceWorker(
           cachePrefix: cachePrefix,
           cacheVersion: cacheVersion,
           baseHref: baseHref,
+          cacheBuster: cacheBuster,
           resources: <String, Object?>{
             if (resources['index.html'] case Object obj) '/': obj,
             ...resources,
@@ -250,6 +254,15 @@ ArgParser buildArgumentsParser() => ArgParser()
     defaultsTo: '',
     valueHelp: 'somename, /othername',
     help: 'Root path of the app site',
+  )
+  ..addOption(
+    'cache-buster',
+    abbr: 'r',
+    aliases: const <String>['cache_buster', 'cachebuster'],
+    mandatory: false,
+    defaultsTo: '',
+    valueHelp: 'sometimestamp',
+    help: 'Value to bust the cached elements',
   );
 
 /// Help message for the command line arguments

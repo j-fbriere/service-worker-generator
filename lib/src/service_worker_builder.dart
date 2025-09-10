@@ -7,6 +7,7 @@ String buildServiceWorker({
   String cachePrefix = 'app-cache',
   String cacheVersion = '1.0.0',
   String baseHref = '',
+  String cacheBuster = '1.0.0',
   Map<String, Object?> resources = const <String, Object?>{},
 }) {
   final resourcesSize = resources.entries.fold<int>(
@@ -34,6 +35,8 @@ String buildServiceWorker({
   return '\'use strict\';\n'
       '\n'
       'const BASE_HREF = \'$baseHref\';\n'
+      '\n'
+      'const CACHE_BUSTER = \'$cacheBuster\';\n'
       '\n'
       '// ---------------------------\n'
       '// Version & Cache Names\n'
@@ -82,7 +85,7 @@ self.addEventListener("install", (event) => {
   return event.waitUntil(
     caches.open(TEMP_CACHE).then((cache) => {
       return cache.addAll(
-        CORE.map((value) => new Request(`${value}?cachebuster=${CACHE_VERSION}`, {'cache': 'reload'})));
+        CORE.map((value) => new Request(`${value}?cachebuster=${CACHE_BUSTER}`, {'cache': 'reload'})));
     })
   );
 });
@@ -236,7 +239,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(caches.open(CACHE_NAME)
     .then((cache) =>  {
       var req_url = new URL(event.request.url);
-      var request_url = req_url.searchParams.get('cachebuster') != null ? event.request.url : (req_url.searchParams.size == 0 ? `${event.request.url}?cachebuster=${CACHE_VERSION}` : `${event.request.url}&cachebuster=${CACHE_VERSION}`);
+      var request_url = req_url.searchParams.get('cachebuster') != null ? event.request.url : (req_url.searchParams.size == 0 ? `${event.request.url}?cachebuster=${CACHE_BUSTER}` : `${event.request.url}&cachebuster=${CACHE_BUSTER}`);
       return cache.match(request_url).then((response) => {
         // Either respond with the cached resource, or perform a fetch and
         // lazily populate the cache only if the resource was successfully fetched.
